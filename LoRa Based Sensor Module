@@ -1,0 +1,130 @@
+#include <SPI.h>
+#include <LoRa.h>
+#include "DHT.h"
+int counter = 0;
+#define DHTPIN 7
+String outgoing; // outgoing message
+int buzzerdata = 0;
+#define DHTTYPE DHT11
+int CO_sensor = A0;
+int buzzer = 2;
+int CO_data = 0;
+int oxygen_data = 0;
+byte msgCount = 0; // count of outgoing messages
+byte MasterNode = 0xFF;
+byte Node1 = 0xBB;
+String Mymessage = ""
+DHT dht(DHTPIN, DHTTYPE);
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+int switch1 = 5;
+int switch2 = 6;
+int switch1_data;
+int switch2_data;
+int vib = 4;
+int vib_data=0;
+void setup() {
+pinMode(vib,INPUT);
+pinMode(switch1,INPUT);
+pinMode(switch2,INPUT);
+pinMode(buzzer,OUTPUT);
+lcd.begin();
+// Turn on the blacklight and print a message.
+lcd.backlight();
+lcd.print("LoRa transmitter");
+delay(500);
+lcd.clear();
+Serial.begin(9600);
+dht.begin();
+while (!Serial);
+Serial.println("LoRa Sender");
+if (!LoRa.begin(433E6)) {
+Serial.println("Starting LoRa failed!");
+while (1);
+}
+Serial.println("LoRa init succeeded."
+}
+void loop() {
+Serial.print("Sending packet: ");
+// Serial.println(counter);
+vib_data = digitalRead(vib);
+oxygen_data = analogRead(A3);
+oxygen_data = map(oxygen_data,0,1023,0,100);
+//Serial.println("oxygen_data:");
+//Serial.println(oxygen_data);
+CO_data = analogRead(CO_sensor);
+CO_data = map(CO_data,90,250,0,100);
+//Serial.println("CO:");
+//Serial.println(CO_data);
+delay(500);
+CO_data = map(CO_data,300,1023,0,100);
+float h = dht.readHumidity();
+// Read temperature as Celsius (the default)
+float t = dht.readTemperature();
+// Read temperature as Fahrenheit (isFahrenheit = true)
+float f = dht.readTemperature(true);
+switch1_data = digitalRead(switch1);
+switch2_data = digitalRead(switch2);
+Serial.println(switch1_data);
+Serial.println(switch2_data);
+// // send packet
+// LoRa.beginPacket();
+// LoRa.print("hello ");
+// LoRa.print(counter);
+// LoRa.en
+// dPacket();
+//
+// counter++;
+if(t>35)
+{
+digitalWrite(2,HIGH);
+}
+else if(oxygen_data<10)
+{
+digitalWrite(buzzer,1)
+}
+else{
+digitalWrite(buzzer,0);
+}
+lcd.setCursor(0,0);
+lcd.print("H:");
+lcd.print(h);
+lcd.setCursor(5,0);
+lcd.print("T:");
+lcd.print(t,0);
+lcd.setCursor(10,0);
+lcd.print("CO:");
+lcd.print(CO_data);
+lcd.print(" ");
+lcd.setCursor(0,1);
+lcd.print("O:");
+lcd.print(oxygen_data);
+lcd.setCursor(5,1);
+lcd.print("V:");
+lcd.print(vib_data);
+//
+// lcd.setCursor(9,1);
+// lcd.print("E:");
+// lcd.print(Sensor6);
+//
+// lcd.setCursor(12,1);
+// lcd.print("ME:");
+// lcd.print(Sensor7);
+Mymessage = Mymessage + vib_data +"," + h + "," + t + "," +CO_data + "," +
+oxygen_data + ","+ switch1_data+ ","+ switch2_data;
+sendMessage(Mymessage,MasterNode,Node1);
+delay(100);
+Mymessage = "";
+delay(500);
+}
+void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
+LoRa.beginPacket(); // start packet
+LoRa.write(MasterNode); // add destination address
+LoRa.write(Node1); // add sender address
+LoRa.write(msgCount); // add message ID
+LoRa.write(outgoing.length()); // add payload length
+LoRa.print(outgoing); // add payload
+LoRa.endPacket(); // finish packet and send it
+//Serial.print(outgoing);
+msgCount++; 
